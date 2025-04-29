@@ -1,0 +1,98 @@
+# Modelfile for Qwen3 14B, tailored for software development tasks.
+# Based on Ollama's default Modelfile for qwen3:14b,
+# incorporating Qwen3 best practices recommendations.
+
+# IMPORTANT: Use the base model reference, not the blob path, for portability.
+# Replace 'qwen3:14b' below if your local tag is different.
+FROM qwen3:14b
+
+# Preserve the original complex template. It's specific to Qwen's chat formatting
+# and handling of roles (user, assistant, tool).
+TEMPLATE """{{- if .Messages }}
+{{- if or .System .Tools }}<|im_start|>system
+{{- if .System }}
+{{ .System }}
+{{- end }}
+{{- if .Tools }}
+
+# Tools
+
+You may call one or more functions to assist with the user query.
+
+You are provided with function signatures within <tools></tools> XML tags:
+<tools>
+{{- range .Tools }}
+{"type": "function", "function": {{ .Function }}}
+{{- end }}
+</tools>
+
+For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:
+<tool_call>
+{"name": <function-name>, "arguments": <args-json-object>}
+</tool_call>
+{{- end }}<|im_end|>
+{{ end }}
+{{- range $i, $_ := .Messages }}
+{{- $last := eq (len (slice $.Messages $i)) 1 -}}
+{{- if eq .Role "user" }}<|im_start|>user
+{{ .Content }}<|im_end|>
+{{ else if eq .Role "assistant" }}<|im_start|>assistant
+{{ if .Content }}{{ .Content }}
+{{- else if .ToolCalls }}<tool_call>
+{{ range .ToolCalls }}{"name": "{{ .Function.Name }}", "arguments": {{ .Function.Arguments }}}
+{{ end }}</tool_call>
+{{- end }}{{ if not $last }}<|im_end|>
+{{ end }}
+{{- else if eq .Role "tool" }}<|im_start|>user
+<tool_response>
+{{ .Content }}
+</tool_response><|im_end|>
+{{ end }}
+{{- if and (ne .Role "assistant") $last }}<|im_start|>assistant
+{{ end }}
+{{- end }}
+{{- else }}
+{{- if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}{{ if .Prompt }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+{{ end }}<|im_start|>assistant
+{{ end }}{{ .Response }}{{ if .Response }}<|im_end>}}{{ end }}"""
+
+# Preserve the critical stop tokens
+PARAMETER stop <|im_start|>
+PARAMETER stop <|im_end|>
+
+# Keep the sampling parameters that already match the Qwen "thinking mode" recommendations
+PARAMETER temperature 0.1
+PARAMETER top_k 20
+PARAMETER top_p 0.95
+
+# ADDED: Include min_p=0 as recommended
+PARAMETER min_p 0
+
+# MODIFIED: Increase repeat_penalty from 1.0 (none) to a value > 1.0
+# to help reduce potential repetition, especially in code generation.
+# Start with 1.1 and fine-tune if needed.
+PARAMETER repeat_penalty 1.1
+
+# ADDED: Set a high maximum output length for detailed code and explanations.
+# Using 32768 as a general high value, adaptable up to 38912 for benchmarks.
+# Or 38912 for very complex/long tasks
+PARAMETER num_predict 32768
+
+# ADDED: A system message tailored for software development.
+SYSTEM """
+You are a highly functional AI assistant specializing in software development tasks.
+Respond to queries about coding, algorithms, debugging, system design,
+and programming languages/frameworks.
+Provide clear, accurate, step-by-step reasoning and functional code examples.
+Always format code snippets using markdown triple backticks (```language ... ```).
+Aim for comprehensive and correct technical assistance.
+Never suggest changing code unrelated to the question topic at hand.
+Restrict yourself to the minimum amount of changes that do resolve the problem at hand.
+Avoid renaming functions or variables unless absolutely necessary, 
+and in doing so make sure if there's anyone calling the old names, 
+for them to be renamed to the new names. Never leave the code in a broken state. 
+Pay close attention to correctness, not just answering the quickiest and dirtiest code to solve the problem.
+"""
