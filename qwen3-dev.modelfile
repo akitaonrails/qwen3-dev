@@ -71,21 +71,27 @@ PARAMETER stop <|endoftext|>
 # SAMPLING PARAMETERS
 # ============================================================================
 # Optimized for code generation and technical accuracy
-PARAMETER temperature 0.1          # Low temperature for consistent, focused responses
-PARAMETER top_k 20                 # Moderate top_k for balanced creativity
-PARAMETER top_p 0.9                # Slightly lower top_p for more focused outputs
-PARAMETER min_p 0.02               # Small min_p to avoid very low probability tokens
-PARAMETER repeat_penalty 1.05      # Gentle repetition penalty to avoid redundancy
-PARAMETER frequency_penalty 0.1    # Slight frequency penalty for varied vocabulary
-PARAMETER presence_penalty 0.0     # No presence penalty for technical terminology
+# Low temperature for consistent, focused responses
+PARAMETER temperature 0.1
+# Moderate top_k for balanced creativity
+PARAMETER top_k 20
+# Slightly lower top_p for more focused outputs
+PARAMETER top_p 0.9
+# Small min_p to avoid very low probability tokens
+PARAMETER min_p 0.02
+# Gentle repetition penalty to avoid redundancy
+PARAMETER repeat_penalty 1.05
 
 # ============================================================================
 # OUTPUT CONFIGURATION
 # ============================================================================
 # High token limit for complex code explanations and multi-file responses
-PARAMETER num_predict 32768        # Maximum output tokens (adjust as needed)
-PARAMETER num_ctx 32768            # Context window size
-PARAMETER num_batch 512            # Batch size for efficient processing
+# Maximum output tokens (adjust as needed)
+PARAMETER num_predict 32768
+# Context window size
+PARAMETER num_ctx 32768
+# Batch size for efficient processing
+PARAMETER num_batch 512
 
 # ============================================================================
 # SYSTEM PROMPT
