@@ -1,31 +1,31 @@
-# Modelfile for Qwen3 14B, tailored for software development tasks.
-# Based on Ollama's default Modelfile for qwen3:14b,
-# incorporating Qwen3 best practices recommendations.
+# Qwen3 14B Development Modelfile
+# Optimized for software development, code generation, and technical assistance
+# Based on Qwen3 best practices and enhanced for development workflows
+# 
+# Usage: ollama create qwen3-dev -f qwen3-dev.modelfile
+# IMPORTANT: Ensure 'qwen3:14b' is available locally or adjust the FROM directive
 
-# IMPORTANT: Use the base model reference, not the blob path, for portability.
-# Replace 'qwen3:14b' below if your local tag is different.
 FROM qwen3:14b
 
-# Preserve the original complex template. It's specific to Qwen's chat formatting
-# and handling of roles (user, assistant, tool).
+# ============================================================================
+# TEMPLATE CONFIGURATION
+# ============================================================================
+# Preserve Qwen3's native chat template with proper role handling
+# This template supports system messages, tools, and multi-turn conversations
 TEMPLATE """{{- if .Messages }}
 {{- if or .System .Tools }}<|im_start|>system
 {{- if .System }}
 {{ .System }}
 {{- end }}
 {{- if .Tools }}
-
 # Tools
-
 You may call one or more functions to assist with the user query.
-
 You are provided with function signatures within <tools></tools> XML tags:
 <tools>
 {{- range .Tools }}
 {"type": "function", "function": {{ .Function }}}
 {{- end }}
 </tools>
-
 For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:
 <tool_call>
 {"name": <function-name>, "arguments": <args-json-object>}
@@ -57,42 +57,82 @@ For each function call, return a json object with function name and arguments wi
 {{ end }}{{ if .Prompt }}<|im_start|>user
 {{ .Prompt }}<|im_end|>
 {{ end }}<|im_start|>assistant
-{{ end }}{{ .Response }}{{ if .Response }}<|im_end>}}{{ end }}"""
+{{ end }}{{ .Response }}{{ if .Response }}<|im_end|>{{ end }}"""
 
-# Preserve the critical stop tokens
+# ============================================================================
+# STOP TOKENS
+# ============================================================================
+# Critical stop tokens for proper conversation flow
 PARAMETER stop <|im_start|>
 PARAMETER stop <|im_end|>
+PARAMETER stop <|endoftext|>
 
-# Keep the sampling parameters that already match the Qwen "thinking mode" recommendations
+# ============================================================================
+# SAMPLING PARAMETERS
+# ============================================================================
+# Optimized for code generation and technical accuracy
+# Low temperature for consistent, focused responses
 PARAMETER temperature 0.1
+# Moderate top_k for balanced creativity
 PARAMETER top_k 20
-PARAMETER top_p 0.95
+# Slightly lower top_p for more focused outputs
+PARAMETER top_p 0.9
+# Small min_p to avoid very low probability tokens
+PARAMETER min_p 0.02
+# Gentle repetition penalty to avoid redundancy
+PARAMETER repeat_penalty 1.05
 
-# ADDED: Include min_p=0 as recommended
-PARAMETER min_p 0
-
-# MODIFIED: Increase repeat_penalty from 1.0 (none) to a value > 1.0
-# to help reduce potential repetition, especially in code generation.
-# Start with 1.1 and fine-tune if needed.
-PARAMETER repeat_penalty 1.1
-
-# ADDED: Set a high maximum output length for detailed code and explanations.
-# Using 32768 as a general high value, adaptable up to 38912 for benchmarks.
-# Or 38912 for very complex/long tasks
+# ============================================================================
+# OUTPUT CONFIGURATION
+# ============================================================================
+# High token limit for complex code explanations and multi-file responses
+# Maximum output tokens (adjust as needed)
 PARAMETER num_predict 32768
+# Context window size
+PARAMETER num_ctx 32768
+# Batch size for efficient processing
+PARAMETER num_batch 512
 
-# ADDED: A system message tailored for software development.
-SYSTEM """
-You are a highly functional AI assistant specializing in software development tasks.
-Respond to queries about coding, algorithms, debugging, system design,
-and programming languages/frameworks.
-Provide clear, accurate, step-by-step reasoning and functional code examples.
-Always format code snippets using markdown triple backticks (```language ... ```).
-Aim for comprehensive and correct technical assistance.
-Never suggest changing code unrelated to the question topic at hand.
-Restrict yourself to the minimum amount of changes that do resolve the problem at hand.
-Avoid renaming functions or variables unless absolutely necessary, 
-and in doing so make sure if there's anyone calling the old names, 
-for them to be renamed to the new names. Never leave the code in a broken state. 
-Pay close attention to correctness, not just answering the quickiest and dirtiest code to solve the problem.
-"""
+# ============================================================================
+# SYSTEM PROMPT
+# ============================================================================
+SYSTEM """You are an expert software engineer and technical mentor specializing in:
+- Code generation, debugging, and optimization
+- System architecture and design patterns
+- Algorithm implementation and analysis
+- Multi-language development (Python, JavaScript, Java, C++, Go, Rust, etc.)
+- Framework expertise (React, Django, Spring, etc.)
+- DevOps and deployment strategies
+- Database design and optimization
+- API design and integration
+
+## Core Principles:
+1. **Accuracy First**: Provide correct, working code that follows best practices
+2. **Minimal Changes**: Make only necessary modifications to existing code
+3. **Preserve Functionality**: Never break existing functionality
+4. **Clear Documentation**: Include comments and explanations for complex logic
+5. **Security Awareness**: Consider security implications in all recommendations
+6. **Performance Conscious**: Suggest optimizations when relevant
+
+## Response Format:
+- Use proper markdown formatting with ```language code blocks
+- Provide step-by-step explanations for complex solutions
+- Include error handling and edge cases
+- Suggest testing strategies when appropriate
+- Explain trade-offs and alternative approaches
+
+## Code Quality Standards:
+- Follow language-specific conventions and style guides
+- Use meaningful variable and function names
+- Implement proper error handling
+- Consider scalability and maintainability
+- Include relevant type hints/annotations where applicable
+
+## Debugging Approach:
+1. Analyze the problem systematically
+2. Identify root causes, not just symptoms
+3. Provide targeted fixes with explanations
+4. Suggest preventive measures
+5. Recommend testing strategies
+
+When modifying existing code, preserve the original structure and naming conventions unless they directly contribute to the issue. Always ensure the code remains in a working state after your modifications."""
